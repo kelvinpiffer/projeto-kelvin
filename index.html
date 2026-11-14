@@ -45,9 +45,10 @@ button{font:inherit;border:0;cursor:pointer}
 .q span{color:var(--pink-2)}
 .sub{text-align:center;font-size:13px;color:var(--muted);margin-bottom:12px}
 .duo{display:flex;gap:10px}
-.btn{flex:1;height:58px;border-radius:16px;font-size:18px;font-weight:900;letter-spacing:.5px;transition:transform .1s}
+.btn{flex:1;height:66px;border-radius:18px;font-size:22px;font-weight:900;letter-spacing:1px;transition:transform .1s}
 .btn:active{transform:scale(.96)}
-.btn--a{background:var(--pink);color:#fff;box-shadow:0 6px 0 var(--pink-2)}
+.btn--a{background:linear-gradient(180deg,#ff5a9e,var(--pink));color:#fff;box-shadow:0 6px 0 var(--pink-2),0 10px 22px rgba(233,30,116,.35);animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
 .btn--b{background:var(--white);color:var(--pink-2);border:2px solid var(--pink);box-shadow:0 6px 0 var(--pink-3)}
 .legal{text-align:center;font-size:11px;color:var(--muted);margin-top:12px}
 
@@ -74,24 +75,32 @@ button{font:inherit;border:0;cursor:pointer}
 .rv-top em{font-style:normal;color:#f5a524;letter-spacing:1px}
 .rv-top small{margin-left:auto;font-weight:500;color:var(--muted)}
 .rv-text{font-size:13.5px;line-height:1.3;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ctas{display:flex;flex-direction:column;gap:8px;margin-top:12px}
-.cta{position:relative;display:flex;align-items:center;gap:12px;height:50px;padding:0 14px;border-radius:16px;text-decoration:none;color:#fff;font-weight:900;font-size:17px;transition:transform .1s}
+.ctas{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+.cta{position:relative;display:flex;align-items:center;justify-content:center;gap:12px;height:62px;padding:0 18px;border-radius:18px;text-decoration:none;color:#fff;font-weight:900;font-size:20px;letter-spacing:.3px;transition:transform .1s}
 .cta:active{transform:scale(.97)}
-.cta svg{width:30px;height:30px;flex:none}
-.cta span{flex:1}
-.cta small{font-size:11px;font-weight:800;background:#fff;padding:3px 7px;border-radius:7px}
-.cta--privacy{background:var(--privacy);box-shadow:0 5px 0 #c95f00}
-.cta--privacy small{color:var(--privacy)}
-.cta--tg{background:var(--tg);box-shadow:0 5px 0 #1b7fb3}
-.cta--tg small{color:var(--tg)}
+.cta .ic{width:34px;height:34px;flex:none}
+.cta .pv-ic{width:auto;height:36px}
+.cta .pv-logo{height:24px;width:auto;flex:none}
+.cta small{position:absolute;top:-10px;right:14px;font-size:11px;font-weight:900;letter-spacing:.5px;padding:4px 10px;border-radius:999px;box-shadow:0 3px 8px rgba(0,0,0,.18)}
+.cta i.shine{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none}
+.cta i.shine::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-20deg);animation:shine 2.8s ease-in-out infinite}
+@keyframes shine{0%,55%{left:-60%}100%{left:130%}}
+.cta--privacy{background:linear-gradient(135deg,#2e2724,#141110);box-shadow:0 6px 0 #000,0 10px 26px rgba(246,141,61,.45);border:2px solid #F68D3D;animation:glow 1.8s ease-in-out infinite}
+@keyframes glow{0%,100%{box-shadow:0 6px 0 #000,0 8px 18px rgba(246,141,61,.35)}50%{box-shadow:0 6px 0 #000,0 10px 34px rgba(246,141,61,.75)}}
+.cta--privacy small{background:#F68D3D;color:#fff}
+.cta--tg{background:linear-gradient(135deg,#3bb4ea,#1f93cc);box-shadow:0 6px 0 #1b7fb3,0 8px 18px rgba(42,163,224,.3)}
+.cta--tg small{background:#fff;color:var(--tg)}
 .safe{text-align:center;font-size:11px;color:var(--muted);margin-top:8px}
 
 @media (max-height:680px){
   .bio{-webkit-line-clamp:1}
   .q{font-size:18px;margin-top:10px}
-  .btn{height:52px}
-  .cta{height:44px}
-  .ctas{gap:6px}
+  .btn{height:58px;font-size:20px}
+  .cta{height:50px;font-size:18px}
+  .cta .pv-ic{height:30px}
+  .cta .pv-logo{height:20px}
+  .cta .ic{width:30px;height:30px}
+  .ctas{gap:14px;margin-top:14px}
   .review{min-height:54px;padding:7px 10px}
 }
 @media (max-height:560px){.bio,.sub,.legal,.safe{display:none}}
@@ -191,7 +200,7 @@ $('b1').textContent = C.btn1;
 $('b2').textContent = C.btn2;
 
 /* pré-carrega a tela 2 depois que a 1 aparece */
-window.addEventListener('load', function(){ [C.cover, C.avatar].forEach(function(s){ new Image().src = s; }); });
+window.addEventListener('load', function(){ [C.cover, C.avatar, 'img/privacy-icon.webp', 'img/privacy-logo.svg'].forEach(function(s){ new Image().src = s; }); });
 
 var built = false;
 function build(){
@@ -204,15 +213,16 @@ function build(){
   $('stats').innerHTML = C.stats.map(function(s){ return '<div><b>' + s[0] + '</b><span>' + s[1] + '</span></div>'; }).join('');
 
   var icons = {
-    privacy: '<svg viewBox="0 0 40 40"><rect width="40" height="40" rx="11" fill="#fff"/><path fill="#ff7a00" d="M14 30V10h7.5a6.5 6.5 0 0 1 0 13H18v7z"/><circle cx="21" cy="16.5" r="2.6" fill="#fff"/></svg>',
-    tg:      '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#fff"/><path fill="#2aa3e0" d="M9.2 19.4l18.6-7.2c.9-.3 1.6.2 1.3 1.5l-3.2 15c-.2 1.1-.9 1.3-1.8.8l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.3-5 9.2-8.3c.4-.4-.1-.6-.6-.2L13.3 22.4l-4.9-1.5c-1.1-.3-1.1-1 .8-1.5z"/></svg>'
+    privacy: '<img class="pv-ic" src="img/privacy-icon.webp" alt=""><img class="pv-logo" src="img/privacy-logo.svg" alt="Privacy">',
+    tg:      '<svg class="ic" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#fff"/><path fill="#2aa3e0" d="M9.2 19.4l18.6-7.2c.9-.3 1.6.2 1.3 1.5l-3.2 15c-.2 1.1-.9 1.3-1.8.8l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.3-5 9.2-8.3c.4-.4-.1-.6-.6-.2L13.3 22.4l-4.9-1.5c-1.1-.3-1.1-1 .8-1.5z"/></svg>'
   };
   C.links.forEach(function(l){
     var a = document.createElement('a');
     a.className = 'cta cta--' + l.type;
     a.href = withParams(l.url); a.target = '_blank'; a.rel = 'noopener';
-    a.innerHTML = (icons[l.type] || '') + '<span></span>' + (l.badge ? '<small></small>' : '');
-    a.querySelector('span').textContent = l.label;
+    a.setAttribute('aria-label', l.label);
+    a.innerHTML = '<i class="shine"></i>' + (icons[l.type] || '') + (l.type === 'privacy' ? '' : '<span></span>') + (l.badge ? '<small></small>' : '');
+    if (l.type !== 'privacy') a.querySelector('span').textContent = l.label;
     if (l.badge) a.querySelector('small').textContent = l.badge;
     $('ctas').appendChild(a);
   });
