@@ -172,9 +172,9 @@ var C = {
 
   /* Botões — troque pelos seus links */
   links: [
-    { type: 'privacy', label: 'Meu Privacy',        badge: 'PROMO',  url: 'https://privacy.com.br/profile/Dudalima_' },
-    { type: 'tg',      label: 'Grupo VIP',          badge: 'VIP',    url: 'https://t.me/donadudinhabot' },
-    { type: 'tg',      label: 'Grupo de Prévias',   badge: 'GRÁTIS', url: 'https://t.me/+p5DoZTCoGRk1OTU5' }
+    { id: 'privacy', type: 'privacy', label: 'Meu Privacy',        badge: 'PROMO',  url: 'https://privacy.com.br/profile/Dudalima_' },
+    { id: 'vip',     type: 'tg',      label: 'Grupo VIP',          badge: 'VIP',    url: 'https://t.me/donadudinhabot' },
+    { id: 'previas', type: 'tg',      label: 'Grupo de Prévias',   badge: 'GRÁTIS', url: 'https://t.me/+p5DoZTCoGRk1OTU5' }
   ],
 
   reviews: [
@@ -190,6 +190,37 @@ var C = {
 var $ = function(id){ return document.getElementById(id); };
 var qs = location.search.slice(1);
 function withParams(u){ return qs ? u + (u.indexOf('?') > -1 ? '&' : '?') + qs : u; }
+
+/* ---- Rastreamento de cliques por UTM (painel: painel-dudinhalima.netlify.app) ---- */
+var TRACK = 'https://painel-dudinhalima.netlify.app/api/e';
+var utm = (function(){
+  var o = {}, has = false;
+  qs.split('&').forEach(function(p){
+    var i = p.indexOf('='), k = i < 0 ? p : p.slice(0, i);
+    if (/^utm_(source|medium|campaign|content|term)$/.test(k)) {
+      try { o[k] = decodeURIComponent((i < 0 ? '' : p.slice(i + 1)).replace(/\+/g, ' ')); } catch(e){ o[k] = p.slice(i + 1); }
+      has = true;
+    }
+  });
+  try {
+    if (has) sessionStorage.setItem('utm', JSON.stringify(o));
+    else o = JSON.parse(sessionStorage.getItem('utm') || '{}');
+  } catch(e){}
+  return o;
+})();
+var refHost = ''; try { refHost = document.referrer ? new URL(document.referrer).hostname : ''; } catch(e){}
+function track(ev, target){
+  try {
+    /* "único" = primeira vez que este visitante faz isso no dia */
+    var d = new Date(), day = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(), k = ev + ':' + (target || ''), u = 1, seen = {};
+    try { seen = JSON.parse(localStorage.getItem('trk') || '{}'); if (seen.d !== day) seen = { d: day }; if (seen[k]) u = 0; seen[k] = 1; localStorage.setItem('trk', JSON.stringify(seen)); } catch(e){}
+    var body = JSON.stringify({ e: ev, t: target || '', u: u, r: refHost,
+      s: utm.utm_source || '', m: utm.utm_medium || '', c: utm.utm_campaign || '', ct: utm.utm_content || '', tm: utm.utm_term || '' });
+    if (!(navigator.sendBeacon && navigator.sendBeacon(TRACK, body)))
+      fetch(TRACK, { method: 'POST', body: body, keepalive: true, mode: 'cors' }).catch(function(){});
+  } catch(e){}
+}
+track('view');
 
 /* Tela 1 */
 $('n1').textContent = C.name;
@@ -224,6 +255,7 @@ function build(){
     a.innerHTML = '<i class="shine"></i>' + (icons[l.type] || '') + (l.type === 'privacy' ? '' : '<span></span>') + (l.badge ? '<small></small>' : '');
     if (l.type !== 'privacy') a.querySelector('span').textContent = l.label;
     if (l.badge) a.querySelector('small').textContent = l.badge;
+    a.addEventListener('click', function(){ track('cta', l.id); });
     $('ctas').appendChild(a);
   });
 
@@ -258,8 +290,8 @@ function go(push){
   $('s2').classList.remove('hidden');
   if (push && !(history.state && history.state.s === 2)) history.pushState({ s: 2 }, '');
 }
-$('b1').addEventListener('click', function(){ go(true); });
-$('b2').addEventListener('click', function(){ go(true); });
+$('b1').addEventListener('click', function(){ track('step', 'sim'); go(true); });
+$('b2').addEventListener('click', function(){ track('step', 'claro'); go(true); });
 window.addEventListener('popstate', function(e){
   if (e.state && e.state.s === 2) go(false);
   else { $('s2').classList.add('hidden'); $('s1').classList.remove('hidden'); }
