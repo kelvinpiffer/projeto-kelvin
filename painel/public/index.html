@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>Painel UTM · Duda Lima</title>
+<title>Painel UTM</title>
 <style>
 :root{
   color-scheme:light;
@@ -79,7 +79,7 @@ tfoot td{font-weight:800;border-bottom:0}
 .empty{padding:26px 0;text-align:center;color:var(--ink3)}
 .build{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:10px 0}
 .build label{font-size:12px;color:var(--ink2);font-weight:600}
-.build input{display:block;width:100%;margin-top:3px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+.build input,.build select{display:block;width:100%;margin-top:3px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
 .out{display:flex;gap:8px;align-items:stretch}
 .out code{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:12px;word-break:break-all;font-family:ui-monospace,Menlo,Consolas,monospace}
 .pri{background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:8px 14px;font-weight:700}
@@ -107,11 +107,14 @@ tfoot td{font-weight:800;border-bottom:0}
 
 <div class="wrap">
   <header>
-    <h1>Painel UTM · Duda Lima<small id="upd">dudinhalima.com</small></h1>
+    <h1>Painel UTM<small id="upd"></small></h1>
     <button class="ghost" id="refresh" type="button">Atualizar</button>
     <button class="ghost" id="logout" type="button">Sair</button>
   </header>
 
+  <div class="bar">
+    <div class="seg" id="prof"></div>
+  </div>
   <div class="bar">
     <div class="seg" id="range">
       <button data-r="0" class="on">Hoje</button><button data-r="1">Ontem</button><button data-r="7">7 dias</button><button data-r="30">30 dias</button>
@@ -129,7 +132,7 @@ tfoot td{font-weight:800;border-bottom:0}
     <section class="panel">
       <h2 id="ctitle">Ao longo do tempo</h2>
       <p class="d">Horário de Brasília</p>
-      <div class="legend"><span><i style="background:var(--s1)"></i>Visitas</span><span><i style="background:var(--s2)"></i>Avançaram (SIM/CLARO)</span><span><i style="background:var(--s3)"></i>Cliques nos links</span></div>
+      <div class="legend"><span><i style="background:var(--s1)"></i>Visitas</span><span><i style="background:var(--s2)"></i>Avançaram</span><span><i style="background:var(--s3)"></i>Cliques nos links</span></div>
       <div class="chart" id="chart"></div>
     </section>
     <section class="panel">
@@ -148,7 +151,8 @@ tfoot td{font-weight:800;border-bottom:0}
 
   <section class="panel">
     <h2>Gerador de link com UTM</h2>
-    <p class="d">Use este link nos anúncios, bio e stories — os cliques aparecem aqui separados por origem</p>
+    <p class="d">Use este link nos anúncios, bio e stories — os cliques aparecem aqui separados por perfil e origem</p>
+    <div class="build"><label>Perfil<select id="lsite"></select></label></div>
     <div class="build" id="build"></div>
     <div class="out"><code id="url"></code><button class="pri" id="copy" type="button">Copiar</button></div>
     <p class="note"><button class="ghost" id="meta" type="button">Preencher padrão Meta Ads</button> &nbsp;usa os campos dinâmicos do Facebook/Instagram (nome da campanha, conjunto e anúncio preenchidos automaticamente).</p>
@@ -157,15 +161,17 @@ tfoot td{font-weight:800;border-bottom:0}
 
 <script>
 (function(){
-var SITE = 'https://dudinhalima.com/';
+var PROFILES = [['duda','Duda Lima','https://dudinhalima.com/'],['luana','Luana Hellcat','https://luanahellcat.com/']];
+var pname = function(p){ for (var i = 0; i < PROFILES.length; i++) if (PROFILES[i][0] === p) return PROFILES[i][1]; return p; };
 var DIMS = [['Source',4,'utm_source'],['Medium',5,'utm_medium'],['Campaign',6,'utm_campaign'],['Content',7,'utm_content'],['Term',8,'utm_term']];
-var TARGETS = { privacy:'Privacy', vip:'Grupo VIP', previas:'Grupo de Prévias' };
+var TARGETS = { privacy:'Privacy', vip:'Grupo / Telegram VIP', previas:'Grupo de Prévias' };
 var $ = function(id){ return document.getElementById(id); };
 var esc = function(s){ return String(s).replace(/[&<>"']/g, function(c){ return '&#' + c.charCodeAt(0) + ';'; }); };
 var fmt = function(n){ return Math.round(n).toLocaleString('pt-BR'); };
 var pct = function(a, b){ return b ? (a / b * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%' : '—'; };
 
-var S = { key:'', data:null, m:9, dim:0, filters:{}, sort:1, from:'', to:'' };
+var S = { key:'', data:null, m:9, dim:0, filters:{}, sort:1, from:'', to:'', prof:'' };
+try { S.prof = localStorage.getItem('painel_prof') || ''; } catch(e){}
 try { S.key = localStorage.getItem('painel_key') || ''; } catch(e){}
 
 function brDay(off){ return new Date(Date.now() - 3*3600e3 - (off||0)*864e5).toISOString().slice(0,10); }
@@ -190,14 +196,14 @@ function load(){
       $('login').classList.add('hidden');
       try { localStorage.setItem('painel_key', S.key); } catch(e){}
       S.data = d; render();
-      $('upd').textContent = 'dudinhalima.com · atualizado às ' + new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+      $('upd').textContent = (S.prof ? pname(S.prof) : 'Todos os perfis') + ' · atualizado às ' + new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
     })
     .catch(function(e){ if (e) $('upd').textContent = 'Não foi possível carregar os dados. Tente atualizar.'; });
 }
 
 function rows(){
   var f = S.filters;
-  return S.data.rows.filter(function(r){ for (var i in f) if (r[i] !== f[i]) return false; return true; });
+  return S.data.rows.filter(function(r){ if (S.prof && r[11] !== S.prof) return false; for (var i in f) if (r[i] !== f[i]) return false; return true; });
 }
 function sum(rs, ev, tg){
   var t = 0;
@@ -208,6 +214,10 @@ function targets(){
   var seen = {}, out = [];
   Object.keys(TARGETS).forEach(function(k){ seen[k] = 1; out.push(k); });
   S.data.rows.forEach(function(r){ if (r[2] === 'cta' && !seen[r[3]]) { seen[r[3]] = 1; out.push(r[3]); } });
+  /* com um perfil escolhido, mostra só os links que ele tem */
+  if (S.prof) { var has = {}; S.data.rows.forEach(function(r){ if (r[11] === S.prof && r[2] === 'cta') has[r[3]] = 1; });
+    var own = { duda:['privacy','vip','previas'], luana:['privacy','vip'] }[S.prof] || [];
+    out = out.filter(function(t){ return has[t] || own.indexOf(t) > -1; }); }
   return out;
 }
 var tname = function(t){ return TARGETS[t] || t; };
@@ -227,7 +237,7 @@ function render(){
   tiles.push(['Cliques nos links', fmt(ct), pct(ct, v) + ' das visitas']);
   $('tiles').innerHTML = tiles.map(function(t){ return '<div class="tile"><span>' + esc(t[0]) + '</span><b>' + t[1] + '</b><em>' + t[2] + '</em></div>'; }).join('');
 
-  var steps = [['Visitas', v, null], ['Avançaram (SIM/CLARO)', st, v], ['Clicaram em um link', ct, st]];
+  var steps = [['Visitas', v, null], ['Avançaram', st, v], ['Clicaram em um link', ct, st]];
   var mx = Math.max(v, st, ct, 1);
   $('fun').innerHTML = steps.map(function(s){
     return '<div class="row"><div class="l"><span>' + s[0] + '</span><b>' + fmt(s[1]) + (s[2] === null ? '' : '<small>' + pct(s[1], s[2]) + '</small>') + '</b></div><div class="track"><div class="fill" style="width:' + (s[1] / mx * 100) + '%"></div></div></div>';
@@ -320,9 +330,12 @@ function link(){
     var v = $(f[0]).value.trim(); if (!v) return '';
     return f[0] + '=' + (/\{\{.+\}\}/.test(v) ? v : encodeURIComponent(v.toLowerCase().replace(/\s+/g, '_')));
   }).filter(Boolean).join('&');
-  $('url').textContent = SITE + (q ? '?' + q : '');
+  $('url').textContent = $('lsite').value + (q ? '?' + q : '');
 }
-$('build').addEventListener('input', link); link();
+$('lsite').innerHTML = PROFILES.map(function(p){ return '<option value="' + p[2] + '">' + p[1] + ' — ' + p[2].replace(/^https:\/\/|\/$/g, '') + '</option>'; }).join('');
+function syncSite(){ PROFILES.forEach(function(p){ if (p[0] === S.prof) $('lsite').value = p[2]; }); }
+$('lsite').addEventListener('change', link);
+$('build').addEventListener('input', link); syncSite(); link();
 $('meta').addEventListener('click', function(){
   var p = { utm_source:'{{site_source_name}}', utm_medium:'{{placement}}', utm_campaign:'{{campaign.name}}', utm_content:'{{ad.name}}', utm_term:'{{adset.name}}' };
   for (var k in p) $(k).value = p[k]; link();
@@ -334,6 +347,13 @@ $('copy').addEventListener('click', function(){
 });
 
 /* ---------- controles ---------- */
+$('prof').innerHTML = [['','Todos os perfis']].concat(PROFILES).map(function(p){ return '<button data-p="' + p[0] + '"' + (p[0] === S.prof ? ' class="on"' : '') + '>' + p[1] + '</button>'; }).join('');
+$('prof').addEventListener('click', function(e){
+  var p = e.target.dataset.p; if (p === undefined) return; S.prof = p;
+  try { localStorage.setItem('painel_prof', p); } catch(e){}
+  [].forEach.call(this.children, function(b){ b.classList.toggle('on', b === e.target); });
+  syncSite(); link(); if (S.data) { render(); $('upd').textContent = (p ? pname(p) : 'Todos os perfis'); }
+});
 $('tabs').innerHTML = DIMS.map(function(d, i){ return '<button data-d="' + i + '"' + (i ? '' : ' class="on"') + '>' + d[0] + '</button>'; }).join('');
 $('tabs').addEventListener('click', function(e){ var d = e.target.dataset.d; if (d === undefined) return; S.dim = +d; [].forEach.call(this.children, function(b, i){ b.classList.toggle('on', i === S.dim); }); render(); });
 $('tbl').addEventListener('click', function(e){

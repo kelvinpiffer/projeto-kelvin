@@ -25,12 +25,15 @@ export default async (req) => {
 
   const deadline = Date.now() + 6000;
   const out = [];
-  /* linhas: [dia, hora, evento, alvo, source, medium, campaign, content, term, cliques, únicos] */
+  /* linhas: [dia, hora, evento, alvo, source, medium, campaign, content, term, cliques, únicos, perfil] */
   for (let i = 0; i < days.length; i += 8) {
     const part = await Promise.all(days.slice(i, i + 8).map((d) => compactDay(d, deadline)));
     part.forEach((rows, j) => {
       const day = days[i + j];
-      for (const k in rows) out.push([day, ...JSON.parse(k), rows[k][0], rows[k][1]]);
+      for (const k in rows) {
+        const a = JSON.parse(k);
+        out.push([day, ...a.slice(0, 8), rows[k][0], rows[k][1], a[8] || 'duda']);
+      }
     });
   }
   return json({ from: days[0], to: days[days.length - 1], today, hour: brNow().hour, rows: out });

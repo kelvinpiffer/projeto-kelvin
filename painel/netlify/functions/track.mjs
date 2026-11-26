@@ -1,7 +1,12 @@
 import { store, rawKey } from '../lib/store.mjs';
 
-/* Recebe os eventos do funil (dudinhalima.com). Público, só grava. */
-const ORIGINS = ['https://dudinhalima.com', 'https://www.dudinhalima.com'];
+/* Recebe os eventos dos funis. Público, só grava. O perfil vem do domínio de origem. */
+const PROFILES = {
+  'https://dudinhalima.com': 'duda', 'https://www.dudinhalima.com': 'duda',
+  'https://luanahellcat.com': 'luana', 'https://www.luanahellcat.com': 'luana'
+};
+const ORIGINS = Object.keys(PROFILES);
+const OWN = /(^|\.)(dudinhalima|luanahellcat)\.com$/;
 const EVENTS = { view: 1, step: 1, cta: 1 };
 const BOT = /bot|crawl|spider|slurp|facebookexternalhit|preview|headless|lighthouse|monitor|curl|wget|python|scrapy/i;
 
@@ -31,7 +36,7 @@ export default async (req) => {
   let src = clean(b.s).toLowerCase();
   if (!src) {
     const ref = clean(b.r, 60).toLowerCase().replace(/^www\./, '');
-    src = ref && !/dudinhalima\.com$/.test(ref) ? 'ref: ' + ref : '(direto)';
+    src = ref && !OWN.test(ref) ? 'ref: ' + ref : '(direto)';
   }
   const dims = [
     b.e,
@@ -40,7 +45,8 @@ export default async (req) => {
     clean(b.m).toLowerCase() || '(vazio)',
     clean(b.c) || '(vazio)',
     clean(b.ct) || '(vazio)',
-    clean(b.tm) || '(vazio)'
+    clean(b.tm) || '(vazio)',
+    PROFILES[origin]
   ];
   await store().set(rawKey(dims, b.u === 1), '');
   return end(204);

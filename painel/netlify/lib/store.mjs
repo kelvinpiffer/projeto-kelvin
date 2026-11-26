@@ -19,7 +19,7 @@ export function brNow(ms = Date.now()) {
 const b64 = (s) => Buffer.from(s, 'utf8').toString('base64url');
 const unb64 = (s) => Buffer.from(s, 'base64url').toString('utf8');
 
-/* dims = [ev, target, source, medium, campaign, content, term] */
+/* dims = [ev, target, source, medium, campaign, content, term, perfil] */
 export function rawKey(dims, unique) {
   const { day, hour } = brNow();
   const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -36,8 +36,11 @@ function parseRaw(key) {
   try {
     const name = key.slice(key.lastIndexOf('/') + 1);
     const arr = JSON.parse(unb64(name.slice(0, name.lastIndexOf('.'))));
-    if (!Array.isArray(arr) || arr.length !== 9) return null;
-    return { k: JSON.stringify(arr.slice(0, 8)), u: arr[8] ? 1 : 0 };
+    if (!Array.isArray(arr)) return null;
+    /* 9 itens = evento antigo, sem perfil (todos eram da Duda); 10 itens = com perfil */
+    if (arr.length === 9) return { k: JSON.stringify([...arr.slice(0, 8), 'duda']), u: arr[8] ? 1 : 0 };
+    if (arr.length === 10) return { k: JSON.stringify(arr.slice(0, 9)), u: arr[9] ? 1 : 0 };
+    return null;
   } catch (e) {
     return null;
   }
@@ -55,7 +58,8 @@ async function pool(items, size, fn, deadline) {
 }
 
 /*
-  Devolve os contadores do dia: { '<[hora,ev,alvo,src,med,camp,content,term]>': [cliques, únicos] }
+  Devolve os contadores do dia: { '<[hora,ev,alvo,src,med,camp,content,term,perfil]>': [cliques, únicos] }
+  (linhas consolidadas antes do perfil existir têm 8 itens — são da Duda)
   e, se der, consolida. `done` guarda as chaves raw já somadas (chave -> quando), para que um raw
   que ainda não foi apagado (ou reaparece na listagem) nunca seja contado duas vezes.
 */
